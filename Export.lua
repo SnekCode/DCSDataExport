@@ -46,7 +46,7 @@ function LuaExportAfterNextFrame()
     if default_output_file then
         default_output_file:write(string.format("t = %.2f, altRad = %.2f, pitch = %.2f, bank = %.2f, yaw = %.2f\n", t, altRad, 57.3*pitch, 57.3*bank, 57.3*yaw))
         default_output_file:write(string.format("Signal Power = %.2f\n", lock))
-        -- ParseSensorData(sens)
+        ParseSensorData(sens)
       
     end
 ​
@@ -54,6 +54,8 @@ end
 ​
 function ParseSensorData(sens)
 -- copy/pasted TWSInfo sample output below
+    local inspect = require('inspect')
+    default_output_file:write(inspect(sens))
 end
 ​
 function OnGameEvent()
