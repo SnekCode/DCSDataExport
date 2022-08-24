@@ -5,13 +5,13 @@
 -- to use standard network protocols in Lua scripts.
 -- LuaSocket 2.0 files (*.dll and *.lua) are supplied in the Scripts/LuaSocket folder
 -- and in the installation folder of the DCS. 
-​
+
 -- Expand the functionality of following functions for your external application needs.
 -- Look into Saved Games\DCS\Logs\dcs.log for this script errors, please.
-​
+
 local Tacviewlfs=require('lfs');dofile(Tacviewlfs.writedir()..'Scripts/TacviewGameExport.lua')
-​
-​
+
+
 --[[	
 -- Uncomment if using Vector class from the Scripts\Vector.lua file 
 local lfs = require('lfs')
@@ -19,61 +19,98 @@ LUA_PATH = "?;?.lua;"..lfs.currentdir().."/Scripts/?.lua"
 require 'Vector'
 -- See the Scripts\Vector.lua file for Vector class details, please.
 --]]
-​
+
 local default_output_file = nil
-​
+
 function LuaExportStart()
    default_output_file = io.open(lfs.writedir().."/Logs/Export.log", "w")
-​
+
 end
-​
+
 function LuaExportBeforeNextFrame()
 -- Works just before every simulation frame.
-​
+
 end
-​
+
 function LuaExportAfterNextFrame()
 -- Works just after every simulation frame.
-​
+
     local t = LoGetModelTime()
     local sens = LoGetTWSInfo()
     local lock = sens.Emitters.1.Power
 	local altRad = LoGetAltitudeAboveGroundLevel()
 	local pitch, bank, yaw = LoGetADIPitchBankYaw()
-​
+
 -- Then send data to your file or to your receiving program:
 -- 1) File
     if default_output_file then
         default_output_file:write(string.format("t = %.2f, altRad = %.2f, pitch = %.2f, bank = %.2f, yaw = %.2f\n", t, altRad, 57.3*pitch, 57.3*bank, 57.3*yaw))
         default_output_file:write(string.format("Signal Power = %.2f\n", lock))
-        ParseSensorData(sens)
+        -- ParseSensorData(sens)
       
     end
-​
+
 end
-​
-function ParseSensorData(sens)
+
+function ParseSensorData(sens, t)
 -- copy/pasted TWSInfo sample output below
-    local inspect = require('inspect')
-    default_output_file:write(inspect(sens))
+    t = flatten(sens)
+    return t
 end
-​
+
 function OnGameEvent()
 -- this needs to write in when what launched and when what killed
 end
-​
+
 function LuaExportStop()
 -- Works once just after mission stop.
 -- Close files and/or connections here.
-​
+
 -- 1) File
    if default_output_file then
 	  default_output_file:close()
 	  default_output_file = nil
    end
-​
+
 end
-​
+
+local function noop(...)
+    return ...
+end
+
+-- convert a nested table to a flat table
+local function flatten(t, sep, key_modifier, res)
+    if type(t) ~= 'table' then
+        return t
+    end
+
+    if sep == nil then
+        sep = '.'
+    end
+
+    if res == nil then
+        res = {}
+    end
+
+    if key_modifier == nil then
+        key_modifier = noop
+    end
+
+    for k, v in pairs(t) do
+        if type(v) == 'table' then
+            local v = flatten(v, sep, key_modifier, {})
+            for k2, v2 in pairs(v) do
+                res[key_modifier(k) .. sep .. key_modifier(k2)] = v2
+            end
+        else
+            res[key_modifier(k)] = v
+        end
+    end
+    return res
+end
+
+return flatten
+
 --[[
 LoGetTWSInfo() -- return Threat Warning System status (result  the table )
 result_of_LoGetTWSInfo =
@@ -91,7 +128,7 @@ emitter_table =
 	SignalType =, -- string with vlues: "scan" ,"lock", "missile_radio_guided","track_while_scan";
 }
 ]]--
-​
+
 --[[ example
 -- syntactic sugar => LoGetTWSInfo().Emitters.1.Power
 lTWSInfo: { 
