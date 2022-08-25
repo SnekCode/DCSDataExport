@@ -10,6 +10,8 @@
 -- Look into Saved Games\DCS\Logs\dcs.log for this script errors, please.
 
 local Tacviewlfs=require('lfs');dofile(Tacviewlfs.writedir()..'Scripts/TacviewGameExport.lua')
+--dofile(lfs.writedir()..[[Scripts\DCS-ExportScript\ExportScript.lua]])
+
 
 
 --[[	
@@ -29,6 +31,7 @@ end
 
 function LuaExportBeforeNextFrame()
 -- Works just before every simulation frame.
+    LoSetCommand(286)
 
 end
 
@@ -36,26 +39,34 @@ function LuaExportAfterNextFrame()
 -- Works just after every simulation frame.
 
     local t = LoGetModelTime()
+    
     local sens = LoGetTWSInfo()
-    local lock = sens.Emitters.1.Power
+    
+    --local lock = ParseSensorData(sens, t)
 	local altRad = LoGetAltitudeAboveGroundLevel()
 	local pitch, bank, yaw = LoGetADIPitchBankYaw()
+    
 
 -- Then send data to your file or to your receiving program:
 -- 1) File
     if default_output_file then
         default_output_file:write(string.format("t = %.2f, altRad = %.2f, pitch = %.2f, bank = %.2f, yaw = %.2f\n", t, altRad, 57.3*pitch, 57.3*bank, 57.3*yaw))
-        default_output_file:write(string.format("Signal Power = %.2f\n", lock))
-        -- ParseSensorData(sens)
-      
+        if sens == nil then
+            default_output_file:write("No Sensor Data\n")
+        end
+        if sens ~= nil then
+            for k, v in pairs(sens) do
+                default_output_file:write(tostring(k) .. ": " .. tostring(v) .. " \n")
+            end
+        end
+
     end
 
 end
 
+
 function ParseSensorData(sens, t)
 -- copy/pasted TWSInfo sample output below
-    t = flatten(sens)
-    return t
 end
 
 function OnGameEvent()
@@ -74,42 +85,6 @@ function LuaExportStop()
 
 end
 
-local function noop(...)
-    return ...
-end
-
--- convert a nested table to a flat table
-local function flatten(t, sep, key_modifier, res)
-    if type(t) ~= 'table' then
-        return t
-    end
-
-    if sep == nil then
-        sep = '.'
-    end
-
-    if res == nil then
-        res = {}
-    end
-
-    if key_modifier == nil then
-        key_modifier = noop
-    end
-
-    for k, v in pairs(t) do
-        if type(v) == 'table' then
-            local v = flatten(v, sep, key_modifier, {})
-            for k2, v2 in pairs(v) do
-                res[key_modifier(k) .. sep .. key_modifier(k2)] = v2
-            end
-        else
-            res[key_modifier(k)] = v
-        end
-    end
-    return res
-end
-
-return flatten
 
 --[[
 LoGetTWSInfo() -- return Threat Warning System status (result  the table )
