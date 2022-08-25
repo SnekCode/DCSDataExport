@@ -85,6 +85,20 @@ function LuaExportStop()
 
 end
 
+function flatten(t)
+    r = ""
+    for k, v in pairs(t) do
+        if type(v) == 'table' then
+            r = r .. k .. "." .. flatten(v)
+        end
+        if type(v) ~= 'table' then
+            r = r .. k .. ":" .. v .. " "
+        end
+    
+    end
+    return r
+end
+
 
 --[[
 LoGetTWSInfo() -- return Threat Warning System status (result  the table )
