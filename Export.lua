@@ -23,16 +23,19 @@ require 'Vector'
 --]]
 
 local default_output_file = nil
+local previous_ouput_file = nil
 
 function LuaExportStart()
-   default_output_file = io.open(lfs.writedir().."/Logs/Export.log", "w")
+    time = os.time(os.date("!*t"))
+    filename = "/Logs/Export".. time ..".log"
+    default_output_file = io.open(lfs.writedir()..filename, "w")
+    UpdatePreviousLogWithDebreifData()
 
 end
 
 function LuaExportBeforeNextFrame()
 -- Works just before every simulation frame.
-    LoSetCommand(286)
-
+    -- LoSetCommand(286)
 end
 
 function LuaExportAfterNextFrame()
@@ -42,7 +45,6 @@ function LuaExportAfterNextFrame()
     
     local sens = LoGetTWSInfo()
     
-    --local lock = ParseSensorData(sens, t)
 	local altRad = LoGetAltitudeAboveGroundLevel()
 	local pitch, bank, yaw = LoGetADIPitchBankYaw()
     
@@ -50,14 +52,12 @@ function LuaExportAfterNextFrame()
 -- Then send data to your file or to your receiving program:
 -- 1) File
     if default_output_file then
-        default_output_file:write(string.format("t = %.2f, altRad = %.2f, pitch = %.2f, bank = %.2f, yaw = %.2f\n", t, altRad, 57.3*pitch, 57.3*bank, 57.3*yaw))
+        default_output_file:write(string.format("t = %.2f, altRad = %.2f, pitch = %.2f, bank = %.2f, yaw = %.2f", t, altRad, 57.3*pitch, 57.3*bank, 57.3*yaw))
         if sens == nil then
-            default_output_file:write("No Sensor Data\n")
+            default_output_file:write(", No Sensor Data")
         end
         if sens ~= nil then
-            for k, v in pairs(sens) do
-                default_output_file:write(tostring(k) .. ": " .. tostring(v) .. " \n")
-            end
+            default_output_file:write(flatten(sens))
         end
 
     end
@@ -65,12 +65,21 @@ function LuaExportAfterNextFrame()
 end
 
 
-function ParseSensorData(sens, t)
--- copy/pasted TWSInfo sample output below
-end
-
 function OnGameEvent()
 -- this needs to write in when what launched and when what killed
+end
+
+function UpdatePreviousLogWithDebreifData()
+    local debrief = io.open(lfs.writedir().."/Logs/debrief.log", "rb")
+    local state = io.open(lfs.writedir().."/Logs/state.log", "r")
+    local previous_file_name = state:read()
+    state:close()
+    local previous_file = io.open(lfs.writedir()..previous_file_name, "a+")
+
+    if previous_file ~= nil then
+        previous_file:write(debrief:read("*all"))
+    end
+    previous_file:close()
 end
 
 function LuaExportStop()
@@ -78,9 +87,18 @@ function LuaExportStop()
 -- Close files and/or connections here.
 
 -- 1) File
+
+-- get debrief
+local debrief = io.open(lfs.writedir().."/Logs/state.log", "w")
+debrief:write(filename)
+debrief:close()
+default_output_file:write("\n\n\n")
+default_output_file:write("#######################")
+default_output_file:write("\n\n\n")
    if default_output_file then
-	  default_output_file:close()
-	  default_output_file = nil
+        previous_output_file = filename
+	    default_output_file:close()
+	    default_output_file = nil
    end
 
 end
@@ -92,7 +110,7 @@ function flatten(t)
             r = r .. k .. "." .. flatten(v)
         end
         if type(v) ~= 'table' then
-            r = r .. k .. ":" .. v .. " "
+            r = r .. k .. ": " .. v .. " "
         end
     
     end
