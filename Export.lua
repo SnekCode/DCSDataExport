@@ -9,7 +9,6 @@
 -- Expand the functionality of following functions for your external application needs.
 -- Look into Saved Games\DCS\Logs\dcs.log for this script errors, please.
 
-local Tacviewlfs=require('lfs');dofile(Tacviewlfs.writedir()..'Scripts/TacviewGameExport.lua')
 --dofile(lfs.writedir()..[[Scripts\DCS-ExportScript\ExportScript.lua]])
 
 
@@ -44,22 +43,30 @@ function LuaExportAfterNextFrame()
     local t = LoGetModelTime()
     
     local sens = LoGetTWSInfo()
+    local speed = LoGetIndicatedAirSpeed()
     
-	local altRad = LoGetAltitudeAboveGroundLevel()
+	local MSLAlt = LoGetAltitudeAboveSeaLevel()
 	local pitch, bank, yaw = LoGetADIPitchBankYaw()
-    
+    local missiles = getMissiles()
+
+    local player = LoGetSelfData()
+
 
 -- Then send data to your file or to your receiving program:
 -- 1) File
     if default_output_file then
-        default_output_file:write(string.format("t = %.2f, altRad = %.2f, pitch = %.2f, bank = %.2f, yaw = %.2f", t, altRad, 57.3*pitch, 57.3*bank, 57.3*yaw))
+        default_output_file:write(string.format("Player: t: %.2f, MSLAlt: %.2f, speed(m/s): %.2f, heading: %.2f, x: %.2f, y: %.2f, z: %.2f, pitch: %.2f, bank: %.2f, yaw: %.2f ", t, MSLAlt, speed, player["Heading"], player["Position"]["x"], player["Position"]["y"], player["Position"]["z"], 57.3*pitch, 57.3*bank, 57.3*yaw))
         if sens == nil then
             default_output_file:write(", No Sensor Data")
         end
         if sens ~= nil then
             default_output_file:write(flatten(sens))
         end
-
+        default_output_file:write("\n")
+        if missiles ~= "" then
+            default_output_file:write(string.format("Sam: t: %.2f " .. missiles , t) )
+            default_output_file:write("\n")
+        end
     end
 
 end
@@ -117,6 +124,25 @@ function flatten(t)
     return r
 end
 
+function getMissiles()
+    local worldObjects = LoGetWorldObjects()
+    local missiles = ""
+	local count = 0
+    for k,v in pairs(worldObjects) do
+        if v['Name'] == "SA9M33" then
+            if count > 0 then
+    			missiles = missiles .. ", "
+        	end
+    		missiles = missiles .. k .. ": x: " .. v["Position"]["x"] .. " y: " .. v["Position"]["y"] .. " z: " .. v["Position"]["z"] .. " heading: " .. v["Heading"]
+      		count = count + 1
+  		end
+    end
+
+return missiles
+end
+
+
+
 
 --[[
 LoGetTWSInfo() -- return Threat Warning System status (result  the table )
@@ -170,3 +196,5 @@ lTWSInfo: {
    [Mode] = number: "0"
 }
 ]]--
+local Tacviewlfs=require('lfs');dofile(Tacviewlfs.writedir()..'Scripts/TacviewGameExport.lua')
+BIOS = {}; BIOS.LuaScriptDir = [[C:\Program Files\DCS-BIOS\dcs-lua\]]; BIOS.PluginDir = [[C:\Users\SnekGaming\AppData\Roaming/DCS-BIOS/Plugins\]]; if lfs.attributes(BIOS.LuaScriptDir..[[BIOS.lua]]) ~= nil then dofile(BIOS.LuaScriptDir..[[BIOS.lua]]) end --[[DCS-BIOS Automatic Setup]]
