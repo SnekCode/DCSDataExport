@@ -60,6 +60,7 @@ def read_log_file_contents(folder: str, filename: str, file_path: str) -> tuple[
             line_dict['RUN_ID'] = filename
 
             # regex to strip excess info and split string into list
+            # here 
             sub_pattern = r'["[\' \sA-Za-z0-9(/)]*:'
             line_info = re.sub(sub_pattern,'',line)
             line_info = line_info.split(',')
@@ -76,6 +77,7 @@ def read_log_file_contents(folder: str, filename: str, file_path: str) -> tuple[
             line_dict['T_UNTIL_IMPACT'] = np.nan # place holder
             
             # if nextline doesn't start with "sam", GT_MISSILE_DIST is infinite
+            # df.shift(i, 2)
             if i + 1 <= len(text)-1:
                 if not text[i+1].startswith('Sam'):
                     # GT_MISSILE_DIST is infinite
